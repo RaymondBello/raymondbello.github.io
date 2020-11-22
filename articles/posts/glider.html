@@ -210,7 +210,7 @@
 					The equations of motion for a aircraft can be developed using Newton's second law for each
 					differential element of mass in the aircraft
 					\[d \overrightarrow F = \overrightarrow a dm\]
-					Then integrating over the entire aircraft.<br>
+					then integrating over the entire aircraft.<br>
 					The time rate of change of the coordinates in the inertial frame instantaneously coincides with the
 					body axes and are represented as:
 					\[ \dot x = u + qz - ry \]
@@ -247,7 +247,7 @@
 					</blockquote>
 					The aircraft's orientation is determined by rotating through the heading angle \(\psi\), then pitching up through pitch angle \(\theta\), then rolling through \(\phi\)<br>
 					Since we want the orientation of the gravity vector, the first rotation is ignored.
-					The second rotation can be represented as 
+					The second rotation(pitch) can be represented as 
 					$$\begin{pmatrix}x_2 \\ y_2\\z_2\end{pmatrix} = 
 					\begin{pmatrix}
 					\cos\theta & 0 & -\sin\theta\\
@@ -258,7 +258,7 @@
 					x_f\\y_f\\z_f
 					\end{pmatrix}
 					$$
-					third rotation,$$
+					third rotation(roll),$$
 					\begin{pmatrix}
 					x\\y\\z
 					\end{pmatrix} = 
@@ -269,12 +269,35 @@
 					x_2\\y_2\\z_2
 					\end{pmatrix}
 					$$
-
-					
-
-
-
 					</p>
+					<p>
+						<h2> Using the IMU to determine Position & Orientation</h2>
+						<blockquote style="font-size: 15px">
+						A gyroscope measures the sensor’s angular velocity, i.e. the rate of change of the sensor’s orientation. An accelerometer measures the external specific force acting on the sensor. The specific force consists of both the sensor’s acceleration and the earth’s gravity.
+						</blockquote>
+						Gyros measures the angular velocity of the body frame \(wrt.\) the inertial frame, written as \(w_{ib}^b\). Angular velocity is expressed as,
+						$$
+						w_{ib}^b = R^{bn}(\omega_{ie}^n + \omega_{en}^n)+\omega_{nb}^b,
+						$$
+						where \(R^{bn}\) is the rot. matrix from the navigation frame to body frame.
+						<br>
+						asasasasas
+					</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 					<blockquote>
 						Gen-z strategy long tail churn rate seed money channels user experience incubator startup
 						partner network low hanging fruit direct mailing. Client backing success startup assets
