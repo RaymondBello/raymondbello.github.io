@@ -174,7 +174,7 @@
 						underpowered in relation to an ideal clock speed range of 70-150Mhz
 					</p>
 					<p>
-						For that reason, the NodeMCU based on the ESP-12E module is a top-contender in this
+						For that reason, the ESP8266 NodeMCU based on the ESP-12E module is a top-contender in this
 						category.<br>Due to packing both WiFi capabilities and a very flexible MCU.
 					</p>
 					<p>
@@ -201,11 +201,12 @@
 					communication
 					while using the least amount of GPIO pins.<br>
 					</p>
-					<p>
 					<h2>Flight Dynamics</h2>
+					<a href="#" class="btn follow" class="btn btn-info" data-toggle="collapse" data-target="#calculation" style="margin-bottom: 15px; ">Toggle Calculations</a>
+					<div id="calculation" class="collapse">
+					<p>
 					<blockquote>
-						<i style="font-size: 15px;">NB: The NED(North-East-Down) fixed-body coordinate system is
-							used</i>
+						<i style="font-size: 15px;">Note: The NED(North-East-Down) fixed-body coordinate system is used throughout</i>
 					</blockquote>
 					The equations of motion for a aircraft can be developed using Newton's second law for each
 					differential element of mass in the aircraft
@@ -245,10 +246,11 @@
 						<li>\(x_f\) axis point North</li>
 						<li>\(y_f\) axis points East</li>
 					</blockquote>
-					The aircraft's orientation is determined by rotating through the heading angle \(\psi\), then pitching up through pitch angle \(\theta\), then rolling through \(\phi\)<br>
+					The aircraft's orientation is determined by rotating through the heading angle \(\psi\), then pitching up through pitch angle \(\theta\), then rolling through \(\phi\).<br>
 					Since we want the orientation of the gravity vector, the first rotation is ignored.
 					The second rotation(pitch) can be represented as 
-					$$\begin{pmatrix}x_2 \\ y_2\\z_2\end{pmatrix} = 
+					$$
+					\begin{pmatrix}x_2 \\ y_2\\z_2\end{pmatrix} = 
 					\begin{pmatrix}
 					\cos\theta & 0 & -\sin\theta\\
 					0 & 1 & 0\\
@@ -258,7 +260,8 @@
 					x_f\\y_f\\z_f
 					\end{pmatrix}
 					$$
-					third rotation(roll),$$
+					third rotation(roll),
+					$$
 					\begin{pmatrix}
 					x\\y\\z
 					\end{pmatrix} = 
@@ -269,36 +272,134 @@
 					x_2\\y_2\\z_2
 					\end{pmatrix}
 					$$
-					</p>
-					<p>
-						<h2> Using the IMU to determine Position & Orientation</h2>
-						<blockquote style="font-size: 15px">
-						A gyroscope measures the sensor’s angular velocity, i.e. the rate of change of the sensor’s orientation. An accelerometer measures the external specific force acting on the sensor. The specific force consists of both the sensor’s acceleration and the earth’s gravity.
+					<blockquote style="font-size: 15px">
+						Notation example: <br>
+							examine a vector \(x\) expressed in the body frame \(b\), denoted by \(x^b\). The rot. matrix \(R^{nb}\) rotates the vector from the body frame \(b\) to the navigation frame \(n\). <br>
+							The rot. from the navigation frame \(n\) to body frame \(b\)  is expressed as \(R^{bn}=(R^{nb})^T\) <br>
+							\(x^n=R^{nb}x^b\),  \(x^b=(R^{nb})^T x^n=R^{bn}x^n\).
 						</blockquote>
-						Gyros measures the angular velocity of the body frame \(wrt.\) the inertial frame, written as \(w_{ib}^b\). Angular velocity is expressed as,
+						Gyros measure the angular velocity of the body frame \(wrt.\) the inertial frame, written as \(w_{ib}^b\). Angular velocity is expressed as,
 						$$
 						w_{ib}^b = R^{bn}(\omega_{ie}^n + \omega_{en}^n)+\omega_{nb}^b,
 						$$
 						where \(R^{bn}\) is the rot. matrix from the navigation frame to body frame.
 						<br>
-						asasasasas
+						The accelerometer measures the specific force \(f\) in the body frame \(b\)
+						$$
+						f^b = R^{bn}(a_{ii}^n - g^n),
+						$$
+						where \(g\) is the gravity vector and \(a_{ii}^n\) is linear acceleration expressed in the navigation frame, expanded as 
+						$$
+						a_{ii}^n = R^{ne}R^{ei}a_{ii}^i
+						$$
+						For navigation we are interested in the position of the sensor in the navigation frame \(p^n\), it's derivative are preformed in the navigation frame
+						$$
+						\frac{d}{dt}x^u\mid_n = v_n^n,\;\;\;\; \frac{d}{dt}v^n\mid_n = a^n_{nn}
+						$$
 					</p>
+					<a href="#" class="btn follow" class="btn btn-info" data-toggle="collapse" data-target="#calculation">Collapse Calculations</a>
+					</div>
+					<h2> Using the IMU to determine Position & Orientation</h2>
+					<p>To obtain the raw values from the IMU and Barometric sensor I used a websocket server to stream sensor data to a host PC for processing during the design phase before  updating any microcontroller firmware. <br>
+					The portion of C++ code that handles this on the ESP8266 is shown below
+					<div>
+						<!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid #389b48;;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">#include &lt;WebSocketsServer.h&gt;</span>
+
+WebSocketsServer webSocket = WebSocketsServer(80);
+<span style="color: #2b91af">char</span> buffer_udp_in[150];
+<span style="color: #2b91af">char</span> buffer_udp_out[150];
+
+<span style="color: #008000">// Called when receiving websocket packet</span>
+<span style="color: #2b91af">void</span> onWebSocketEvent(u_int num, WStype_t type, <span style="color: #2b91af">uint8_t</span> *payload, <span style="color: #2b91af">size_t</span> length)
+{
+  <span style="color: #008000">// Determine type of Websocket event</span>
+  <span style="color: #0000ff">switch</span> (type)
+  {
+  <span style="color: #0000ff">case</span> (WStype_DISCONNECTED):
+  {
+    Serial.printf(<span style="color: #a31515">&quot;[%u] Disconnected.\n&quot;</span>, num);
+    <span style="color: #0000ff">break</span>;
+  }
+  <span style="color: #0000ff">case</span> (WStype_CONNECTED):
+  {
+    IPAddress ip = webSocket.remoteIP(num);
+    Serial.printf(<span style="color: #a31515">&quot;[%u] Connection from &quot;</span>, num);
+    Serial.println(ip.toString());
+    <span style="color: #0000ff">break</span>;
+  }
+  <span style="color: #0000ff">case</span> (WStype_TEXT):
+  {
+    sprintf(buffer_udp_in, <span style="color: #a31515">&quot;%s&quot;</span>, payload);
+    Serial.println(buffer_udp_in);
+    sprintf(buffer_udp_out, <span style="color: #a31515">&quot;%.3f,%.3f,%.3f,%.3f,%.3f,3f,%.3f,%.3f,%.3f,3f,%.3f,3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3&quot;</span>, acc[0], acc[1], acc[2], gyro[0], gyro[1], gyro[2], mag[0], mag[1], mag[2], qrt[0], qrt[1], qrt[2], qrt[3], pressure, altitude, temp, pitch, roll, yaw);
+    webSocket.sendTXT(num, buffer_udp_out);
+    <span style="color: #0000ff">break</span>;
+  }
+  <span style="color: #0000ff">case</span> (WStype_BIN):
+  <span style="color: #0000ff">case</span> (WStype_ERROR):
+  <span style="color: #0000ff">case</span> (WStype_FRAGMENT_TEXT_START):
+  <span style="color: #0000ff">case</span> (WStype_FRAGMENT):
+  <span style="color: #0000ff">case</span> (WStype_FRAGMENT_FIN):
+  default:
+    <span style="color: #0000ff">break</span>;
+  }
+}
+<span style="color: #2b91af">void</span> start_websocket_loop()
+{
+  webSocket.loop();
+}
+</pre></div>
+
+					</div>
+					<br>
+					The host receives the data via a python websocket.
+					Then the data can then be processed and visualized.<br>
+					The python websocket is as follows
+					<div>
+						<!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid #389b48;;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><pre style="margin: 0; line-height: 125%"><span style="color: #0000ff">import</span> websocket
+
+<span style="color: #0000ff">class</span> <span style="color: #2b91af">TCP_Manager</span>:
+    <span style="color: #0000ff">def</span> __init__(self):
+        self.targetIP = <span style="color: #a31515">&quot;192.168.0.25&quot;</span>
+        self.handler = websocket.WebSocket()
+        <span style="color: #0000ff">try</span>:
+            self.handler.connect(f<span style="color: #a31515">&quot;ws://{self.targetIP}&quot;</span>)
+            print(f<span style="color: #a31515">&quot;Connected to IP: {self.targetIP}&quot;</span>)
+        <span style="color: #0000ff">except</span> Exception <span style="color: #0000ff">as</span> error:
+            print(error)
+    
+    <span style="color: #0000ff">def</span> send_data(self, data_type, data):
+        <span style="color: #a31515">&#39;&#39;&#39;Send data to tagertIP, return True if sent else Return False&#39;&#39;&#39;</span>
+        packet_out = (str(data_type) + <span style="color: #a31515">&quot;:&quot;</span> + str(data))
+        <span style="color: #0000ff">try</span>:
+            self.handler.send(packet_out)
+            <span style="color: #0000ff">return</span> <span style="color: #0000ff">True</span>
+        <span style="color: #0000ff">except</span> Exception <span style="color: #0000ff">as</span> error:
+            print(error)
+        <span style="color: #0000ff">return</span> <span style="color: #0000ff">False</span>
+
+    <span style="color: #0000ff">def</span> receive_data(self):
+        <span style="color: #a31515">&#39;&#39;&#39;Receive packet from targetIP return the received packet as an array&#39;&#39;&#39;</span>
+        packet_in = self.handler.recv()
+        <span style="color: #0000ff">return</span> packet_in.split(<span style="color: #a31515">&quot;,&quot;</span>)
+    
+    <span style="color: #0000ff">def</span> close_connection(self):
+        <span style="color: #a31515">&#39;&#39;&#39;End communication with client&#39;&#39;&#39;</span>
+        self.handler.close()
+        <span style="color: #0000ff">return</span> <span style="color: #0000ff">True</span>
+</pre></div>
+
+					</div>
+					<br>
+					
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-					<blockquote>
+				
+					
+					</p>
+					<blockquote >
 						Gen-z strategy long tail churn rate seed money channels user experience incubator startup
 						partner network low hanging fruit direct mailing. Client backing success startup assets
 						responsive web design burn rate A/B testing metrics first mover advantage conversion.
